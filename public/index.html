@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Automation Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            background: #f9f9f9;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .status.disconnected {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .status.connecting {
+            background: #ffd93d;
+            color: #333;
+        }
+
+        .status.connected {
+            background: #6bcf7f;
+            color: white;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        input[type="file"] {
+            margin: 10px 0;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            direction: auto;
+            unicode-bidi: plaintext;
+        }
+
+        #qrcode {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #qrcode img {
+            max-width: 300px;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            padding: 10px;
+            background: white;
+        }
+
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #2196f3;
+        }
+
+        .contacts-preview {
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .contact-item {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+            direction: auto;
+            unicode-bidi: plaintext;
+        }
+
+        .results {
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .result-item {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            direction: auto;
+            unicode-bidi: plaintext;
+        }
+
+        .result-item.success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+
+        .result-item.failed {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .helper-text {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 WhatsApp Automation Bot</h1>
+
+        <!-- Section 1: WhatsApp Connection -->
+        <div class="section">
+            <h2>1. WhatsApp Connection</h2>
+            <div>
+                Status: <span class="status disconnected" id="status">Disconnected</span>
+            </div>
+            <button onclick="connectWhatsApp()" id="connectBtn">Connect WhatsApp</button>
+            <button onclick="checkStatus()">Check Status</button>
+            <button onclick="disconnect()" id="disconnectBtn" disabled>Disconnect</button>
+            
+            <div id="qrcode"></div>
+        </div>
+
+        <!-- Section 2: Upload CSV -->
+        <div class="section">
+            <h2>2. Upload Contacts CSV</h2>
+            <div class="info">
+                <strong>CSV Format:</strong> Your CSV file should have columns named "name" and "phone" (case-insensitive).
+                You can add additional columns for personalization.
+                <br><strong>Arabic Support:</strong> ✓ Full support for Arabic text. Save your CSV file as UTF-8 encoding.
+            </div>
+            <input type="file" id="csvFile" accept=".csv" onchange="uploadCSV()">
+            <div class="helper-text">Expected format: name, phone, [other custom fields...]</div>
+            
+            <div id="contactsInfo"></div>
+            <div id="contactsPreview" class="contacts-preview" style="display:none;"></div>
+        </div>
+
+        <!-- Section 3: Compose Message -->
+        <div class="section">
+            <h2>3. Compose Personalized Message</h2>
+            <div class="info">
+                <strong>Personalization:</strong> Use {{name}}, {{phone}}, or any column name from your CSV in double curly braces.
+                <br>Example: "Hello {{name}}, this is a message for {{phone}}"
+                <br>Example (Arabic): "مرحبا {{name}}، هذه رسالة مخصصة لك"
+            </div>
+            <textarea id="message" placeholder="Type your message here...&#10;&#10;Example:&#10;Hi {{name}}, this is a personalized message!&#10;&#10;مثال بالعربي:&#10;مرحبا {{name}}، هذه رسالة لك"></textarea>
+        </div>
+
+        <!-- Section 4: Send Messages -->
+        <div class="section">
+            <h2>4. Send Messages</h2>
+            <button onclick="sendMessages()" id="sendBtn" disabled>Send to All Contacts</button>
+            
+            <div id="results" class="results" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let contacts = [];
+        let isConnected = false;
+        let qrCheckInterval = null;
+        let statusCheckInterval = null;
+
+        async function connectWhatsApp() {
+            try {
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('connectBtn').innerHTML = 'Connecting... <span class="loading"></span>';
+                
+                const response = await fetch('/api/connect', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('WhatsApp connection initiated. Please scan the QR code if prompted.');
+                    startQRCheck();
+                    startStatusCheck();
+                } else {
+                    alert('Error: ' + data.error);
+                    document.getElementById('connectBtn').disabled = false;
+                    document.getElementById('connectBtn').innerHTML = 'Connect WhatsApp';
+                }
+            } catch (error) {
+                alert('Error connecting to WhatsApp');
+                console.error(error);
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('connectBtn').innerHTML = 'Connect WhatsApp';
+            }
+        }
+
+        function startQRCheck() {
+            qrCheckInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/qr');
+                    const data = await response.json();
+                    
+                    if (data.qr) {
+                        document.getElementById('qrcode').innerHTML = 
+                            '<p>Scan this QR code with WhatsApp:</p><img src="' + data.qr + '" alt="QR Code">';
+                    }
+                } catch (error) {
+                    // QR might not be available yet
+                }
+            }, 2000);
+        }
+
+        function startStatusCheck() {
+            statusCheckInterval = setInterval(checkStatus, 3000);
+        }
+
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                const statusElement = document.getElementById('status');
+                statusElement.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                statusElement.className = 'status ' + data.status;
+                
+                if (data.status === 'connected') {
+                    isConnected = true;
+                    document.getElementById('qrcode').innerHTML = '<p style="color: green;">✓ WhatsApp Connected Successfully!</p>';
+                    document.getElementById('connectBtn').style.display = 'none';
+                    document.getElementById('disconnectBtn').disabled = false;
+                    
+                    if (qrCheckInterval) clearInterval(qrCheckInterval);
+                    if (statusCheckInterval) clearInterval(statusCheckInterval);
+                    
+                    updateSendButton();
+                }
+            } catch (error) {
+                console.error('Error checking status:', error);
+            }
+        }
+
+        async function uploadCSV() {
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('csvFile', file);
+            
+            try {
+                const response = await fetch('/api/upload-csv', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    contacts = data.contacts;
+                    document.getElementById('contactsInfo').innerHTML = 
+                        `<p style="color: green; margin-top: 10px;">✓ ${data.count} contacts loaded successfully!</p>`;
+                    
+                    // Show preview
+                    const previewDiv = document.getElementById('contactsPreview');
+                    previewDiv.style.display = 'block';
+                    previewDiv.innerHTML = '<strong>Contacts Preview:</strong><br>' + 
+                        contacts.slice(0, 10).map(c => 
+                            `<div class="contact-item">${c.name} - ${c.phone}</div>`
+                        ).join('') +
+                        (contacts.length > 10 ? '<div class="contact-item">... and ' + (contacts.length - 10) + ' more</div>' : '');
+                    
+                    updateSendButton();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error uploading CSV file');
+                console.error(error);
+            }
+        }
+
+        function updateSendButton() {
+            const sendBtn = document.getElementById('sendBtn');
+            if (isConnected && contacts.length > 0) {
+                sendBtn.disabled = false;
+            } else {
+                sendBtn.disabled = true;
+            }
+        }
+
+        async function sendMessages() {
+            const message = document.getElementById('message').value;
+            
+            if (!message.trim()) {
+                alert('Please enter a message');
+                return;
+            }
+            
+            if (!confirm(`Send message to ${contacts.length} contacts?`)) {
+                return;
+            }
+            
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = 'Sending... <span class="loading"></span>';
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<p>Sending messages...</p>';
+            
+            try {
+                const response = await fetch('/api/send-messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contacts: contacts,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    let html = '<strong>Results:</strong><br>';
+                    data.results.forEach(result => {
+                        const className = result.success ? 'success' : 'failed';
+                        html += `<div class="result-item ${className}">
+                            <span>${result.name} (${result.phone})</span>
+                            <span>${result.message}</span>
+                        </div>`;
+                    });
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = '<p style="color: red;">Error: ' + data.error + '</p>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = '<p style="color: red;">Error sending messages</p>';
+                console.error(error);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = 'Send to All Contacts';
+            }
+        }
+
+        async function disconnect() {
+            if (!confirm('Disconnect WhatsApp?')) return;
+            
+            try {
+                await fetch('/api/disconnect', { method: 'POST' });
+                location.reload();
+            } catch (error) {
+                alert('Error disconnecting');
+                console.error(error);
+            }
+        }
+
+        // Check status on page load
+        checkStatus();
+    </script>
+</body>
+</html>

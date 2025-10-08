@@ -1,0 +1,7 @@
+# Docker setup files
+docker-compose.yml
+docker-compose.override.yml
+
+# Ignore Docker volumes but keep the compose file
+postgres_data/
+pgadmin_data/

@@ -1,0 +1,89 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1'>
+<title>WhatsApp Bot Dashboard</title>
+<link rel='stylesheet' href='style.css'>
+</head>
+<body>
+<div class='app'>
+<header class='header'>
+<div class='logo'><h1> WhatsApp Bot</h1></div>
+<div class='user'><span id='username'>...</span><button onclick='logout()' class='btn-logout'>Logout</button></div>
+</header>
+<div class='layout'>
+<nav class='sidebar'>
+<button class='tab active' onclick='switchTab(0)'> Connection</button>
+<button class='tab' onclick='switchTab(1)'> Contacts <span id='ccount' class='badge'>0</span></button>
+<button class='tab' onclick='switchTab(2)'> Groups</button>
+<button class='tab' onclick='switchTab(3)'> Templates</button>
+<button class='tab' onclick='switchTab(4)'> Send</button>
+<button class='tab' onclick='switchTab(5)'> History</button>
+</nav>
+<main class='content'>
+<div class='panel active' id='p0'>
+<h2>WhatsApp Connection</h2>
+<div class='card'>
+<div class='status-display'><span id='status' class='badge disc'>Disconnected</span></div>
+<div id='sessionExpiredMsg' style='display:none;background:#fff3cd;border:1px solid #ffc107;padding:10px;border-radius:6px;margin-bottom:15px;color:#856404'><strong>⚠ Session Expired:</strong> Your WhatsApp session has expired. Please clear the session and scan a new QR code.</div>
+<div id='connectionTimeoutMsg' style='display:none;background:#f8d7da;border:1px solid #f5c2c7;padding:10px;border-radius:6px;margin-bottom:15px;color:#842029'><strong>⚠ Connection Timeout:</strong> WhatsApp connection timed out. This usually happens due to network issues. Please disconnect and try connecting again.</div>
+<div style='display:flex;gap:10px;flex-wrap:wrap'>
+<button onclick='connect()' class='btn' title='Connect to your existing WhatsApp session or scan new QR code'>Connect</button>
+<button onclick='disconnect()' class='btn btn-danger' title='Temporarily disconnect (session preserved)'>Disconnect</button>
+<button onclick='clearSession()' class='btn btn-secondary' style='background:#6c757d' title='Clear session and force new QR code scan'>Clear Session</button>
+</div>
+<div id='qr' style='display:none;text-align:center;margin-top:20px'><img id='qrimg' style='max-width:300px;border-radius:10px'></div>
+</div>
+</div>
+<div class='panel' id='p1'>
+<div class='flex-between'><h2>Contacts</h2><div><button onclick='showModal("addContact")' class='btn'>+ Add</button><label class='btn'><input type='file' id='csv' accept='.csv' onchange='importCSV()' style='display:none'>Import CSV</label></div></div>
+<input type='text' id='search' placeholder='Search...' onkeyup='searchContacts()' class='search'>
+<div id='msg1'></div>
+<div class='table-wrap'><table><thead><tr><th><input type='checkbox' onchange='toggleAll(this)'></th><th>Name</th><th>Phone</th><th>Email</th><th>Company</th><th>Actions</th></tr></thead><tbody id='ctable'><tr><td colspan='6' style='text-align:center;padding:40px'>No contacts</td></tr></tbody></table></div>
+<button onclick='deleteSelected()' class='btn btn-danger btn-sm' style='margin-top:10px'>Delete Selected</button>
+</div>
+<div class='panel' id='p2'>
+<div class='flex-between'><h2>Groups</h2><button onclick='showModal("addGroup")' class='btn'>+ Create</button></div>
+<div id='msg2'></div>
+<div id='glist' style='display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px;margin-top:20px'></div>
+</div>
+<div class='panel' id='p3'>
+<div class='flex-between'><h2>Templates</h2><button onclick='showModal("addTemplate")' class='btn'>+ Create</button></div>
+<div id='msg3'></div>
+<div id='tlist' style='display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin-top:20px'></div>
+</div>
+<div class='panel' id='p4'>
+<h2>Send Messages</h2>
+<div class='card'>
+<label>Recipients</label>
+<select id='rectype' onchange='updateRecipients()'><option value='all'>All Contacts</option><option value='selected'>Selected Only</option><option value='group'>From Group</option></select>
+<div id='gsel' style='display:none;margin-top:10px'><label>Group</label><select id='grp'></select></div>
+<label style='margin-top:15px'>Template</label>
+<select id='tpl' onchange='loadTpl()'><option value=''>--Select--</option></select>
+<label style='margin-top:15px'>Message</label>
+<textarea id='msg' rows='6' placeholder='Type message... Use {{name}}, {{phone}} etc.'></textarea>
+<div id='msg4' style='margin-top:10px'></div>
+<button onclick='send()' class='btn btn-success' style='margin-top:15px'> Send Messages</button>
+</div>
+</div>
+<div class='panel' id='p5'>
+<h2>History & Stats</h2>
+<div class='stats'>
+<div class='stat'><h4>Total</h4><div id='st1'>0</div></div>
+<div class='stat'><h4>Sent</h4><div id='st2'>0</div></div>
+<div class='stat'><h4>Failed</h4><div id='st3'>0</div></div>
+<div class='stat'><h4>Today</h4><div id='st4'>0</div></div>
+</div>
+<div class='card' style='margin-top:20px'><h3>Recent Messages</h3><div class='table-wrap'><table><thead><tr><th>Date</th><th>Contact</th><th>Phone</th><th>Status</th><th>Message</th></tr></thead><tbody id='htable'><tr><td colspan='5' style='text-align:center;padding:40px'>No history</td></tr></tbody></table></div></div>
+</div>
+</main>
+</div>
+</div>
+<div id='addContact' class='modal'><div class='modal-content'><h3>Add Contact</h3><div id='mcmsg'></div><form onsubmit='addContact(event)'><input type='text' id='cname' placeholder='Name*' required><input type='tel' id='cphone' placeholder='Phone*' required><input type='email' id='cemail' placeholder='Email'><input type='text' id='ccompany' placeholder='Company'><input type='text' id='ccity' placeholder='City'><input type='text' id='ccountry' placeholder='Country'><input type='text' id='ctags' placeholder='Tags (comma sep)'><div class='flex-between' style='margin-top:20px'><button type='button' onclick='closeModal()' class='btn btn-secondary'>Cancel</button><button type='submit' class='btn'>Save</button></div></form></div></div>
+<div id='addGroup' class='modal'><div class='modal-content'><h3>Create Group</h3><div id='mgmsg'></div><form onsubmit='addGroup(event)'><input type='text' id='gname' placeholder='Group Name*' required><textarea id='gdesc' placeholder='Description' rows='3'></textarea><div class='flex-between' style='margin-top:20px'><button type='button' onclick='closeModal()' class='btn btn-secondary'>Cancel</button><button type='submit' class='btn'>Create</button></div></form></div></div>
+<div id='addTemplate' class='modal'><div class='modal-content'><h3>Create Template</h3><div id='mtmsg'></div><form onsubmit='addTemplate(event)'><input type='text' id='tname' placeholder='Template Name*' required><input type='text' id='tcat' placeholder='Category'><select id='tlang'><option value='en'>English</option><option value='ar'>Arabic</option><option value='fr'>French</option><option value='es'>Spanish</option></select><textarea id='tcontent' placeholder='Message content with {{placeholders}}' rows='6' required></textarea><div class='flex-between' style='margin-top:20px'><button type='button' onclick='closeModal()' class='btn btn-secondary'>Cancel</button><button type='submit' class='btn'>Save</button></div></form></div></div>
+<div id='viewGroup' class='modal'><div class='modal-content'><h3 id='groupTitle'>Group Details</h3><div id='gmsg'></div><div style='margin:20px 0'><h4 style='margin-bottom:10px'>Members (<span id='memberCount'>0</span>)</h4><div id='memberList' style='max-height:300px;overflow-y:auto;border:1px solid #e9ecef;border-radius:8px;padding:10px'></div></div><div style='margin-top:20px'><h4 style='margin-bottom:10px'>Add Members</h4><div style='display:flex;gap:10px;flex-wrap:wrap' id='contactCheckboxes'></div></div><div class='flex-between' style='margin-top:20px'><button type='button' onclick='closeModal()' class='btn btn-secondary'>Close</button><button onclick='addMembersToGroup()' class='btn'>Add Selected</button></div></div></div>
+<script src='app.js'></script>
+</body>
+</html>
