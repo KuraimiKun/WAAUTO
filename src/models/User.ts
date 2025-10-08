@@ -113,6 +113,21 @@ export async function initializeDatabase() {
       )
     `);
 
+    // Create error logs table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS error_logs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        error_type VARCHAR(50) NOT NULL,
+        error_message TEXT NOT NULL,
+        stack_trace TEXT,
+        context JSONB,
+        severity VARCHAR(20) DEFAULT 'error',
+        resolved BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Create indexes
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_contacts_user_id ON contacts(user_id);
@@ -123,6 +138,9 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_message_history_sent_at ON message_history(sent_at);
       CREATE INDEX IF NOT EXISTS idx_scheduled_messages_user_id ON scheduled_messages(user_id);
       CREATE INDEX IF NOT EXISTS idx_scheduled_messages_scheduled_for ON scheduled_messages(scheduled_for);
+      CREATE INDEX IF NOT EXISTS idx_error_logs_user_id ON error_logs(user_id);
+      CREATE INDEX IF NOT EXISTS idx_error_logs_created_at ON error_logs(created_at);
+      CREATE INDEX IF NOT EXISTS idx_error_logs_resolved ON error_logs(resolved);
     `);
 
     console.log('Database tables initialized successfully');

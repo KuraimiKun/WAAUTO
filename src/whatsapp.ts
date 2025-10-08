@@ -6,6 +6,7 @@ import makeWASocket, {
 import QRCode from 'qrcode';
 import pino from 'pino';
 import { MessageHistoryService } from './services/messageHistoryService.js';
+import ErrorLogService from './services/ErrorLogService.js';
 
 interface Contact {
   id?: number;
@@ -67,6 +68,19 @@ export class WhatsAppService {
             await this.clearSessionFiles();
             this.reconnectAttempts = 0;
             this.isReconnecting = false;
+            
+            // Log error
+            try {
+              await ErrorLogService.logError({
+                user_id: this.userId,
+                error_type: 'session_expired',
+                error_message: 'WhatsApp session expired (401). Please scan QR code again.',
+                context: { statusCode: 401 },
+                severity: 'warning'
+              });
+            } catch (logError) {
+              console.error('Failed to log error:', logError);
+            }
             // Don't auto-reconnect for 401 errors
           } else if (statusCode === DisconnectReason.loggedOut) {
             // User logged out - clear session files
@@ -80,6 +94,19 @@ export class WhatsAppService {
             console.log('Connection timeout (440/408/428) for user:', this.userId, '. Please reconnect manually.');
             this.reconnectAttempts = 0;
             this.isReconnecting = false;
+            
+            // Log error
+            try {
+              await ErrorLogService.logError({
+                user_id: this.userId,
+                error_type: 'connection_timeout',
+                error_message: `WhatsApp connection timeout (${statusCode}). Network or connection issue detected.`,
+                context: { statusCode },
+                severity: 'error'
+              });
+            } catch (logError) {
+              console.error('Failed to log error:', logError);
+            }
             // Don't auto-reconnect for timeout errors
           } else if (shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts && !this.isReconnecting) {
             // Other errors - try to reconnect with limit
@@ -155,6 +182,20 @@ export class WhatsAppService {
       return true;
     } catch (error) {
       console.error(`Failed to send message to ${phone}:`, error);
+      
+      // Log error to database
+      try {
+        await ErrorLogService.logError({
+          user_id: this.userId,
+          error_type: 'message_send_failed',
+          error_message: `Failed to send message to ${phone}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stack_trace: error instanceof Error ? error.stack : undefined,
+          context: { phone, contactId, messageLength: message.length },
+          severity: 'error'
+        });
+      } catch (logError) {
+        console.error('Failed to log error:', logError);
+      }
       
       // Save failed attempt to history
       try {

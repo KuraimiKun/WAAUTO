@@ -13,6 +13,8 @@ window.onload = async () => {
     loadTemplates();
     loadHistory();
     loadStats();
+    loadErrors();
+    loadErrorStats();
     checkStatus();
     setInterval(checkStatus, 3000);
 };
@@ -25,6 +27,11 @@ async function checkAuth() {
         const data = await res.json();
         currentUser = data.user;
         document.getElementById('username').textContent = data.user.username;
+        // Set user avatar initial
+        const avatar = document.getElementById('userAvatar');
+        if (avatar) {
+            avatar.textContent = data.user.username.charAt(0).toUpperCase();
+        }
     } catch (e) {
         window.location = '/';
     }
@@ -37,7 +44,7 @@ async function logout() {
 
 // Tab switching
 function switchTab(index) {
-    document.querySelectorAll('.tab').forEach((t, i) => {
+    document.querySelectorAll('nav a').forEach((t, i) => {
         t.classList.toggle('active', i === index);
     });
     document.querySelectorAll('.panel').forEach((p, i) => {
@@ -656,3 +663,154 @@ document.addEventListener('click', (e) => {
         closeModal();
     }
 });
+
+// ============= ERROR LOGS =============
+
+async function loadErrors() {
+    try {
+        const res = await fetch('/api/errors');
+        const data = await res.json();
+        const tbody = document.getElementById('etable');
+        
+        if (data.errors.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px">No errors</td></tr>';
+        } else {
+            tbody.innerHTML = data.errors.map(err => `
+                <tr class="${err.resolved ? 'error-resolved' : ''}">
+                    <td>${new Date(err.created_at).toLocaleString()}</td>
+                    <td>${err.error_type}</td>
+                    <td><span class="severity-${err.severity}">${err.severity}</span></td>
+                    <td title="${err.stack_trace || ''}">${err.error_message}</td>
+                    <td>
+                        ${!err.resolved ? `<button onclick="resolveError(${err.id})" class="btn btn-sm btn-success">Resolve</button>` : ''}
+                        <button onclick="deleteError(${err.id})" class="btn btn-sm btn-danger">Delete</button>
+                        ${err.context ? `<button onclick="viewErrorDetails(${err.id})" class="btn btn-sm btn-secondary">Details</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+    } catch (e) {
+        console.error('Load errors failed', e);
+    }
+}
+
+async function loadErrorStats() {
+    try {
+        const res = await fetch('/api/errors/stats');
+        const data = await res.json();
+        
+        document.getElementById('est1').textContent = data.unresolved || 0;
+        document.getElementById('est2').textContent = data.critical || 0;
+        document.getElementById('est3').textContent = data.error || 0;
+        document.getElementById('est4').textContent = data.warning || 0;
+        document.getElementById('ecount').textContent = data.unresolved || 0;
+        
+        // Update badge class
+        const badge = document.getElementById('ecount');
+        if (data.critical > 0) {
+            badge.className = 'badge disc';
+        } else if (data.error > 0) {
+            badge.className = 'badge connecting';
+        } else if (data.warning > 0) {
+            badge.className = 'badge conn';
+        } else {
+            badge.className = 'badge';
+        }
+    } catch (e) {
+        console.error('Load error stats failed', e);
+    }
+}
+
+async function resolveError(id) {
+    try {
+        const res = await fetch(`/api/errors/${id}/resolve`, { method: 'PATCH' });
+        if (res.ok) {
+            showMessage('msg6', 'Error marked as resolved', 'success');
+            loadErrors();
+            loadErrorStats();
+        } else {
+            showMessage('msg6', 'Failed to resolve error', 'error');
+        }
+    } catch (e) {
+        showMessage('msg6', 'Failed to resolve error', 'error');
+    }
+}
+
+async function deleteError(id) {
+    if (!confirm('Delete this error log?')) return;
+    
+    try {
+        const res = await fetch(`/api/errors/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            showMessage('msg6', 'Error deleted', 'success');
+            loadErrors();
+            loadErrorStats();
+        } else {
+            showMessage('msg6', 'Failed to delete error', 'error');
+        }
+    } catch (e) {
+        showMessage('msg6', 'Failed to delete error', 'error');
+    }
+}
+
+async function resolveAllErrors() {
+    if (!confirm('Mark all errors as resolved?')) return;
+    
+    try {
+        const res = await fetch('/api/errors/resolve-all', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+            showMessage('msg6', data.message, 'success');
+            loadErrors();
+            loadErrorStats();
+        } else {
+            showMessage('msg6', 'Failed to resolve all errors', 'error');
+        }
+    } catch (e) {
+        showMessage('msg6', 'Failed to resolve all errors', 'error');
+    }
+}
+
+async function clearResolvedErrors() {
+    if (!confirm('Delete all resolved errors? This cannot be undone.')) return;
+    
+    try {
+        const res = await fetch('/api/errors/clear-resolved', { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok) {
+            showMessage('msg6', data.message, 'success');
+            loadErrors();
+            loadErrorStats();
+        } else {
+            showMessage('msg6', 'Failed to clear resolved errors', 'error');
+        }
+    } catch (e) {
+        showMessage('msg6', 'Failed to clear resolved errors', 'error');
+    }
+}
+
+async function viewErrorDetails(id) {
+    try {
+        const res = await fetch(`/api/errors/${id}`);
+        const err = await res.json();
+        
+        let details = `Error ID: ${err.id}\n`;
+        details += `Type: ${err.error_type}\n`;
+        details += `Severity: ${err.severity}\n`;
+        details += `Time: ${new Date(err.created_at).toLocaleString()}\n`;
+        details += `Message: ${err.error_message}\n\n`;
+        
+        if (err.context) {
+            details += `Context:\n${JSON.stringify(err.context, null, 2)}\n\n`;
+        }
+        
+        if (err.stack_trace) {
+            details += `Stack Trace:\n${err.stack_trace}`;
+        }
+        
+        alert(details);
+    } catch (e) {
+        showMessage('msg6', 'Failed to load error details', 'error');
+    }
+}
+

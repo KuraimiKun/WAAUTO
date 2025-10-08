@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset='UTF-8'>
@@ -7,21 +7,36 @@
 <link rel='stylesheet' href='style.css'>
 </head>
 <body>
-<div class='app'>
-<header class='header'>
-<div class='logo'><h1> WhatsApp Bot</h1></div>
-<div class='user'><span id='username'>...</span><button onclick='logout()' class='btn-logout'>Logout</button></div>
-</header>
-<div class='layout'>
-<nav class='sidebar'>
-<button class='tab active' onclick='switchTab(0)'> Connection</button>
-<button class='tab' onclick='switchTab(1)'> Contacts <span id='ccount' class='badge'>0</span></button>
-<button class='tab' onclick='switchTab(2)'> Groups</button>
-<button class='tab' onclick='switchTab(3)'> Templates</button>
-<button class='tab' onclick='switchTab(4)'> Send</button>
-<button class='tab' onclick='switchTab(5)'> History</button>
+<div class='container'>
+<aside class='sidebar'>
+<div class='logo'>
+<div class='logo-icon'>W</div>
+<div class='logo-text'>
+<div class='logo-title'>WABOT</div>
+<div class='logo-subtitle'>WhatsApp Automation</div>
+</div>
+</div>
+<div class='user-info'>
+<div class='user-details'>
+<div class='user-avatar' id='userAvatar'>U</div>
+<div class='user-name' id='username'>Loading...</div>
+</div>
+</div>
+<nav>
+<a class='active' onclick='switchTab(0)'>Connection</a>
+<a onclick='switchTab(1)'>Contacts <span id='ccount' class='badge'>0</span></a>
+<a onclick='switchTab(2)'>Groups</a>
+<a onclick='switchTab(3)'>Templates</a>
+<a onclick='switchTab(4)'>Send Messages</a>
+<a onclick='switchTab(5)'>History</a>
+<a onclick='switchTab(6)'>Errors <span id='ecount' class='badge'>0</span></a>
 </nav>
-<main class='content'>
+<div class='logout-btn'>
+<button onclick='logout()'>Logout</button>
+</div>
+</aside>
+<main class='main'>
+<div class='content'>
 <div class='panel active' id='p0'>
 <h2>WhatsApp Connection</h2>
 <div class='card'>
@@ -64,7 +79,7 @@
 <label style='margin-top:15px'>Message</label>
 <textarea id='msg' rows='6' placeholder='Type message... Use {{name}}, {{phone}} etc.'></textarea>
 <div id='msg4' style='margin-top:10px'></div>
-<button onclick='send()' class='btn btn-success' style='margin-top:15px'> Send Messages</button>
+<button onclick='send()' class='btn btn-success' style='margin-top:15px'>Send Messages</button>
 </div>
 </div>
 <div class='panel' id='p5'>
@@ -77,8 +92,19 @@
 </div>
 <div class='card' style='margin-top:20px'><h3>Recent Messages</h3><div class='table-wrap'><table><thead><tr><th>Date</th><th>Contact</th><th>Phone</th><th>Status</th><th>Message</th></tr></thead><tbody id='htable'><tr><td colspan='5' style='text-align:center;padding:40px'>No history</td></tr></tbody></table></div></div>
 </div>
-</main>
+<div class='panel' id='p6'>
+<div class='flex-between'><h2>Error Logs</h2><div><button onclick='resolveAllErrors()' class='btn btn-secondary'>Resolve All</button><button onclick='clearResolvedErrors()' class='btn btn-danger'>Clear Resolved</button></div></div>
+<div class='stats'>
+<div class='stat'><h4>Unresolved</h4><div id='est1'>0</div></div>
+<div class='stat'><h4>Critical</h4><div id='est2'>0</div></div>
+<div class='stat'><h4>Errors</h4><div id='est3'>0</div></div>
+<div class='stat'><h4>Warnings</h4><div id='est4'>0</div></div>
 </div>
+<div id='msg6'></div>
+<div class='table-wrap'><table><thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Message</th><th>Actions</th></tr></thead><tbody id='etable'><tr><td colspan='5' style='text-align:center;padding:40px'>No errors</td></tr></tbody></table></div>
+</div>
+</div>
+</main>
 </div>
 <div id='addContact' class='modal'><div class='modal-content'><h3>Add Contact</h3><div id='mcmsg'></div><form onsubmit='addContact(event)'><input type='text' id='cname' placeholder='Name*' required><input type='tel' id='cphone' placeholder='Phone*' required><input type='email' id='cemail' placeholder='Email'><input type='text' id='ccompany' placeholder='Company'><input type='text' id='ccity' placeholder='City'><input type='text' id='ccountry' placeholder='Country'><input type='text' id='ctags' placeholder='Tags (comma sep)'><div class='flex-between' style='margin-top:20px'><button type='button' onclick='closeModal()' class='btn btn-secondary'>Cancel</button><button type='submit' class='btn'>Save</button></div></form></div></div>
 <div id='addGroup' class='modal'><div class='modal-content'><h3>Create Group</h3><div id='mgmsg'></div><form onsubmit='addGroup(event)'><input type='text' id='gname' placeholder='Group Name*' required><textarea id='gdesc' placeholder='Description' rows='3'></textarea><div class='flex-between' style='margin-top:20px'><button type='button' onclick='closeModal()' class='btn btn-secondary'>Cancel</button><button type='submit' class='btn'>Create</button></div></form></div></div>

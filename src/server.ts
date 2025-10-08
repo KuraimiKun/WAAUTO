@@ -14,6 +14,7 @@ import { ContactService } from './services/contactService.js';
 import { GroupService } from './services/groupService.js';
 import { TemplateService } from './services/templateService.js';
 import { MessageHistoryService } from './services/messageHistoryService.js';
+import ErrorLogService from './services/ErrorLogService.js';
 import { requireAuth, requireGuest } from './middleware/auth.js';
 import { WhatsAppService } from './whatsapp.js';
 import { parseCSV } from './utils/csvParser.js';
@@ -669,6 +670,116 @@ app.get('/api/history/stats', requireAuth, async (req: Request, res: Response) =
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+});
+
+// ============= ERROR LOG ROUTES (Protected) =============
+
+// Get error logs
+app.get('/api/errors', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const limit = parseInt(req.query.limit as string) || 100;
+    const includeResolved = req.query.includeResolved === 'true';
+    
+    const errors = await ErrorLogService.getUserErrors(userId, limit, includeResolved);
+    
+    res.json({ errors, count: errors.length });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch error logs' });
+  }
+});
+
+// Get error statistics
+app.get('/api/errors/stats', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    
+    const stats = await ErrorLogService.getErrorStats(userId);
+    
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch error statistics' });
+  }
+});
+
+// Get error by ID
+app.get('/api/errors/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const errorId = parseInt(req.params.id);
+    
+    const error = await ErrorLogService.getErrorById(errorId, userId);
+    
+    if (error) {
+      res.json(error);
+    } else {
+      res.status(404).json({ error: 'Error not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch error details' });
+  }
+});
+
+// Mark error as resolved
+app.patch('/api/errors/:id/resolve', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const errorId = parseInt(req.params.id);
+    
+    const success = await ErrorLogService.resolveError(errorId, userId);
+    
+    if (success) {
+      res.json({ message: 'Error marked as resolved' });
+    } else {
+      res.status(404).json({ error: 'Error not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to resolve error' });
+  }
+});
+
+// Delete error
+app.delete('/api/errors/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const errorId = parseInt(req.params.id);
+    
+    const success = await ErrorLogService.deleteError(errorId, userId);
+    
+    if (success) {
+      res.json({ message: 'Error deleted successfully' });
+    } else {
+      res.status(404).json({ error: 'Error not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete error' });
+  }
+});
+
+// Resolve all errors
+app.post('/api/errors/resolve-all', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    
+    const count = await ErrorLogService.resolveAllErrors(userId);
+    
+    res.json({ message: `${count} errors marked as resolved` });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to resolve all errors' });
+  }
+});
+
+// Clear resolved errors
+app.delete('/api/errors/clear-resolved', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    
+    const count = await ErrorLogService.clearResolvedErrors(userId);
+    
+    res.json({ message: `${count} resolved errors cleared` });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to clear resolved errors' });
   }
 });
 
