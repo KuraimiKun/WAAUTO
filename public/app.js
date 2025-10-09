@@ -50,6 +50,12 @@ function switchTab(index) {
     document.querySelectorAll('.panel').forEach((p, i) => {
         p.classList.toggle('active', i === index);
     });
+    
+    // Close sidebar on mobile when tab is clicked
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+    }
 }
 
 // WhatsApp Connection
@@ -812,5 +818,11 @@ async function viewErrorDetails(id) {
     } catch (e) {
         showMessage('msg6', 'Failed to load error details', 'error');
     }
+}
+
+// Mobile sidebar toggle
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    sidebar.classList.toggle('open');
 }
 

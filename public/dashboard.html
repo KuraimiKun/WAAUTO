@@ -105,6 +105,7 @@
 </div>
 </div>
 </main>
+<button class='menu-toggle' onclick='toggleSidebar()'>☰</button>
 </div>
 <div id='addContact' class='modal'><div class='modal-content'><h3>Add Contact</h3><div id='mcmsg'></div><form onsubmit='addContact(event)'><input type='text' id='cname' placeholder='Name*' required><input type='tel' id='cphone' placeholder='Phone*' required><input type='email' id='cemail' placeholder='Email'><input type='text' id='ccompany' placeholder='Company'><input type='text' id='ccity' placeholder='City'><input type='text' id='ccountry' placeholder='Country'><input type='text' id='ctags' placeholder='Tags (comma sep)'><div class='flex-between' style='margin-top:20px'><button type='button' onclick='closeModal()' class='btn btn-secondary'>Cancel</button><button type='submit' class='btn'>Save</button></div></form></div></div>
 <div id='addGroup' class='modal'><div class='modal-content'><h3>Create Group</h3><div id='mgmsg'></div><form onsubmit='addGroup(event)'><input type='text' id='gname' placeholder='Group Name*' required><textarea id='gdesc' placeholder='Description' rows='3'></textarea><div class='flex-between' style='margin-top:20px'><button type='button' onclick='closeModal()' class='btn btn-secondary'>Cancel</button><button type='submit' class='btn'>Create</button></div></form></div></div>
