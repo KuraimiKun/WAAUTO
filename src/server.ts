@@ -15,6 +15,7 @@ import { GroupService } from './services/groupService.js';
 import { TemplateService } from './services/templateService.js';
 import { MessageHistoryService } from './services/messageHistoryService.js';
 import ErrorLogService from './services/ErrorLogService.js';
+import ScheduledMessageService, { ScheduleStrategy } from './services/ScheduledMessageService.js';
 import { requireAuth, requireGuest } from './middleware/auth.js';
 import { WhatsAppService } from './whatsapp.js';
 import { parseCSV } from './utils/csvParser.js';
@@ -278,6 +279,152 @@ app.post('/api/send-messages', requireAuth, async (req: Request, res: Response) 
   }
 });
 
+// ============= SCHEDULED MESSAGES ROUTES =============
+
+app.get('/api/scheduled-messages', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const limit = parseInt(req.query.limit as string) || 25;
+    const schedules = await ScheduledMessageService.getUpcomingSchedules(userId, limit);
+    res.json({ schedules });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch scheduled messages' });
+  }
+});
+
+app.get('/api/scheduled-messages/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const scheduleId = parseInt(req.params.id);
+
+    const schedule = await ScheduledMessageService.getScheduleById(scheduleId, userId);
+    if (!schedule) {
+      return res.status(404).json({ error: 'Schedule not found' });
+    }
+
+    res.json({ schedule });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch schedule' });
+  }
+});
+
+app.post('/api/scheduled-messages', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const {
+      name,
+      message,
+      scheduled_for,
+      strategy,
+      contact_ids,
+      group_id,
+      custom_recipients,
+      timezone,
+      message_template_id
+    } = req.body;
+
+    if (!message || !scheduled_for || !strategy) {
+      return res.status(400).json({ error: 'Message, strategy and schedule time are required' });
+    }
+
+    const scheduleTime = new Date(scheduled_for);
+    if (Number.isNaN(scheduleTime.getTime())) {
+      return res.status(400).json({ error: 'Invalid schedule time provided' });
+    }
+
+    if (scheduleTime.getTime() < Date.now() + 60_000) {
+      return res.status(400).json({ error: 'Schedule time must be at least 1 minute in the future' });
+    }
+
+    const validStrategies: ScheduleStrategy[] = ['all', 'group', 'selected', 'custom'];
+    if (!validStrategies.includes(strategy)) {
+      return res.status(400).json({ error: 'Invalid strategy type' });
+    }
+
+    let normalizedContactIds: number[] | undefined;
+    let normalizedCustom: Array<{ name?: string; phone: string }> | undefined;
+    let normalizedGroupId: number | undefined;
+
+    if (strategy === 'selected') {
+      if (!Array.isArray(contact_ids) || contact_ids.length === 0) {
+        return res.status(400).json({ error: 'Select at least one contact to schedule for selected strategy' });
+      }
+      normalizedContactIds = contact_ids
+        .map((id: any) => parseInt(id))
+        .filter((id: number) => !Number.isNaN(id));
+      if (!normalizedContactIds.length) {
+        return res.status(400).json({ error: 'No valid contact IDs provided' });
+      }
+    }
+
+    if (strategy === 'group') {
+      const parsedGroupId = parseInt(group_id);
+      if (Number.isNaN(parsedGroupId)) {
+        return res.status(400).json({ error: 'Group strategy requires a valid group id' });
+      }
+      const group = await GroupService.getGroupById(parsedGroupId, userId);
+      if (!group) {
+        return res.status(404).json({ error: 'Group not found for scheduling' });
+      }
+      normalizedGroupId = parsedGroupId;
+    }
+
+    if (strategy === 'custom') {
+      if (!Array.isArray(custom_recipients) || custom_recipients.length === 0) {
+        return res.status(400).json({ error: 'Provide at least one custom recipient' });
+      }
+      normalizedCustom = custom_recipients
+        .map((recipient: any) => ({
+          name: recipient?.name?.toString(),
+          phone: recipient?.phone?.toString() ?? ''
+        }))
+        .filter((recipient) => recipient.phone.trim().length > 0);
+
+      if (!normalizedCustom.length) {
+        return res.status(400).json({ error: 'Custom recipients must include valid phone numbers' });
+      }
+    }
+
+    const schedule = await ScheduledMessageService.createSchedule({
+      user_id: userId,
+      name,
+      message,
+      strategy,
+      contact_ids: normalizedContactIds,
+      group_id: normalizedGroupId,
+      custom_recipients: normalizedCustom,
+      timezone,
+      scheduled_for: scheduleTime,
+      message_template_id
+    });
+
+    res.json({ message: 'Message scheduled successfully', schedule });
+  } catch (error) {
+    console.error('Failed to create scheduled message:', error);
+    res.status(500).json({ error: 'Failed to schedule message' });
+  }
+});
+
+app.post('/api/scheduled-messages/:id/cancel', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const scheduleId = parseInt(req.params.id);
+
+    if (Number.isNaN(scheduleId)) {
+      return res.status(400).json({ error: 'Invalid schedule id' });
+    }
+
+    const cancelled = await ScheduledMessageService.cancelSchedule(scheduleId, userId);
+    if (!cancelled) {
+      return res.status(404).json({ error: 'Schedule not found or already processed' });
+    }
+
+    res.json({ message: 'Scheduled message cancelled' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to cancel scheduled message' });
+  }
+});
+
 // Disconnect WhatsApp
 app.post('/api/disconnect', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -310,16 +457,28 @@ app.post('/api/clear-session', requireAuth, async (req: Request, res: Response) 
 
 // ============= CONTACTS ROUTES (Protected) =============
 
-// Get all contacts
+// Get all contacts (with optional tag filter)
 app.get('/api/contacts', requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = req.session.userId!;
-    const contacts = await ContactService.getAllContacts(userId);
-    const count = await ContactService.getContactsCount(userId);
+    const tag = typeof req.query.tag === 'string' ? req.query.tag : undefined;
+    const contacts = await ContactService.getAllContacts(userId, { tag });
+    const count = await ContactService.getContactsCount(userId, { tag });
     
     res.json({ contacts, count });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch contacts' });
+  }
+});
+
+// Get tag summary
+app.get('/api/contacts/tags', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const tags = await ContactService.getTagSummary(userId);
+    res.json({ tags });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch contact tags' });
   }
 });
 

@@ -112,4 +112,13 @@ export class GroupService {
     
     return result.rows;
   }
+
+  static async getGroupById(groupId: number, userId: number): Promise<Group | null> {
+    const result = await pool.query(
+      `SELECT * FROM contact_groups WHERE id = $1 AND user_id = $2`,
+      [groupId, userId]
+    );
+
+    return result.rows[0] || null;
+  }
 }

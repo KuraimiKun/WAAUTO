@@ -151,7 +151,12 @@ export class WhatsAppService {
     return this.connectionStatus;
   }
 
-  async sendMessage(phone: string, message: string, contactId?: number): Promise<boolean> {
+  async sendMessage(
+    phone: string,
+    message: string,
+    contactId?: number,
+    options?: { scheduledMessageId?: number }
+  ): Promise<boolean> {
     if (!this.sock || this.connectionStatus !== 'connected') {
       throw new Error('WhatsApp not connected');
     }
@@ -173,7 +178,8 @@ export class WhatsAppService {
           contact_id: contactId,
           phone,
           message,
-          status: 'sent'
+          status: 'sent',
+          scheduled_message_id: options?.scheduledMessageId
         });
       } catch (historyError) {
         console.error('Failed to save message to history:', historyError);
@@ -190,7 +196,7 @@ export class WhatsAppService {
           error_type: 'message_send_failed',
           error_message: `Failed to send message to ${phone}: ${error instanceof Error ? error.message : 'Unknown error'}`,
           stack_trace: error instanceof Error ? error.stack : undefined,
-          context: { phone, contactId, messageLength: message.length },
+          context: { phone, contactId, messageLength: message.length, scheduledMessageId: options?.scheduledMessageId },
           severity: 'error'
         });
       } catch (logError) {
@@ -205,7 +211,8 @@ export class WhatsAppService {
           phone,
           message,
           status: 'failed',
-          error_message: error instanceof Error ? error.message : 'Unknown error'
+          error_message: error instanceof Error ? error.message : 'Unknown error',
+          scheduled_message_id: options?.scheduledMessageId
         });
       } catch (historyError) {
         console.error('Failed to save error to history:', historyError);
@@ -215,7 +222,11 @@ export class WhatsAppService {
     }
   }
 
-  async sendBulkMessages(contacts: Contact[], messageTemplate: string): Promise<any[]> {
+  async sendBulkMessages(
+    contacts: Contact[],
+    messageTemplate: string,
+    options?: { scheduledMessageId?: number }
+  ): Promise<any[]> {
     const results = [];
 
     for (const contact of contacts) {
@@ -229,7 +240,7 @@ export class WhatsAppService {
           personalizedMessage = personalizedMessage.replace(placeholder, String(contact[key]));
         });
 
-        const success = await this.sendMessage(contact.phone, personalizedMessage, contact.id);
+  const success = await this.sendMessage(contact.phone, personalizedMessage, contact.id, options);
         
         results.push({
           phone: contact.phone,

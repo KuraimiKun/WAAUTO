@@ -17,11 +17,19 @@ export interface Contact {
 
 export class ContactService {
   // Get all contacts for a user
-  static async getAllContacts(userId: number): Promise<Contact[]> {
-    const result = await pool.query(
-      'SELECT * FROM contacts WHERE user_id = $1 ORDER BY name ASC',
-      [userId]
-    );
+  static async getAllContacts(userId: number, options: { tag?: string } = {}): Promise<Contact[]> {
+    const { tag } = options;
+    const params: any[] = [userId];
+    let query = 'SELECT * FROM contacts WHERE user_id = $1';
+
+    if (tag) {
+      params.push(tag);
+      query += ` AND $${params.length} = ANY(tags)`;
+    }
+
+    query += ' ORDER BY name ASC';
+
+    const result = await pool.query(query, params);
     return result.rows;
   }
 
@@ -138,12 +146,47 @@ export class ContactService {
   }
 
   // Get contacts count
-  static async getContactsCount(userId: number): Promise<number> {
+  static async getContactsCount(userId: number, options: { tag?: string } = {}): Promise<number> {
+    const { tag } = options;
+    const params: any[] = [userId];
+    let query = 'SELECT COUNT(*) as count FROM contacts WHERE user_id = $1';
+
+    if (tag) {
+      params.push(tag);
+      query += ` AND $${params.length} = ANY(tags)`;
+    }
+
+    const result = await pool.query(query, params);
+    return parseInt(result.rows[0].count);
+  }
+
+  static async getContactsByIds(userId: number, contactIds: number[]): Promise<Contact[]> {
+    if (!contactIds || contactIds.length === 0) {
+      return [];
+    }
+
     const result = await pool.query(
-      'SELECT COUNT(*) as count FROM contacts WHERE user_id = $1',
+      `SELECT * FROM contacts WHERE user_id = $1 AND id = ANY($2)`,
+      [userId, contactIds]
+    );
+
+    return result.rows;
+  }
+
+  static async getTagSummary(userId: number): Promise<Array<{ tag: string; count: number }>> {
+    const result = await pool.query(
+      `SELECT tag, COUNT(*)
+       FROM (
+         SELECT UNNEST(tags) AS tag
+         FROM contacts
+         WHERE user_id = $1 AND tags IS NOT NULL
+       ) t
+       WHERE tag IS NOT NULL AND tag <> ''
+       GROUP BY tag
+       ORDER BY COUNT(*) DESC, tag ASC`,
       [userId]
     );
-    
-    return parseInt(result.rows[0].count);
+
+    return result.rows.map((row) => ({ tag: row.tag, count: parseInt(row.count, 10) }));
   }
 }

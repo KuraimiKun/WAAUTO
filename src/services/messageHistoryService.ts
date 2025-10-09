@@ -9,16 +9,17 @@ export interface MessageHistory {
   status: 'sent' | 'failed' | 'pending';
   sent_at?: Date;
   error_message?: string;
+  scheduled_message_id?: number;
 }
 
 export class MessageHistoryService {
   // Add message to history
   static async addMessage(message: MessageHistory): Promise<MessageHistory> {
-    const { user_id, contact_id, phone, message: content, status, error_message } = message;
+    const { user_id, contact_id, phone, message: content, status, error_message, scheduled_message_id } = message;
     
     const result = await pool.query(
-      'INSERT INTO message_history (user_id, contact_id, phone, message, status, error_message) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [user_id, contact_id, phone, content, status, error_message]
+      'INSERT INTO message_history (user_id, contact_id, phone, message, status, error_message, scheduled_message_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [user_id, contact_id ?? null, phone, content, status, error_message ?? null, scheduled_message_id ?? null]
     );
     
     return result.rows[0];

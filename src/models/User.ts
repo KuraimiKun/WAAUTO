@@ -104,14 +104,37 @@ export async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS scheduled_messages (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        group_id INTEGER REFERENCES contact_groups(id) ON DELETE CASCADE,
+        name VARCHAR(255),
         message TEXT NOT NULL,
+        strategy VARCHAR(30) DEFAULT 'all',
+        contact_ids INTEGER[],
+        group_id INTEGER REFERENCES contact_groups(id) ON DELETE CASCADE,
+        custom_recipients JSONB,
+        timezone VARCHAR(64),
         scheduled_for TIMESTAMP NOT NULL,
         status VARCHAR(20) DEFAULT 'pending',
+        attempts INTEGER DEFAULT 0,
+        error_message TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        sent_at TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        sent_at TIMESTAMP,
+        message_template_id INTEGER REFERENCES message_templates(id) ON DELETE SET NULL
       )
     `);
+
+    // Ensure new columns exist for legacy databases
+    await client.query(`ALTER TABLE scheduled_messages ADD COLUMN IF NOT EXISTS name VARCHAR(255)`);
+    await client.query(`ALTER TABLE scheduled_messages ADD COLUMN IF NOT EXISTS strategy VARCHAR(30) DEFAULT 'all'`);
+    await client.query(`ALTER TABLE scheduled_messages ADD COLUMN IF NOT EXISTS contact_ids INTEGER[]`);
+    await client.query(`ALTER TABLE scheduled_messages ADD COLUMN IF NOT EXISTS custom_recipients JSONB`);
+    await client.query(`ALTER TABLE scheduled_messages ADD COLUMN IF NOT EXISTS timezone VARCHAR(64)`);
+    await client.query(`ALTER TABLE scheduled_messages ADD COLUMN IF NOT EXISTS attempts INTEGER DEFAULT 0`);
+    await client.query(`ALTER TABLE scheduled_messages ADD COLUMN IF NOT EXISTS error_message TEXT`);
+    await client.query(`ALTER TABLE scheduled_messages ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+    await client.query(`ALTER TABLE scheduled_messages ADD COLUMN IF NOT EXISTS message_template_id INTEGER REFERENCES message_templates(id) ON DELETE SET NULL`);
+
+    // Message history enhancements
+    await client.query(`ALTER TABLE message_history ADD COLUMN IF NOT EXISTS scheduled_message_id INTEGER REFERENCES scheduled_messages(id) ON DELETE SET NULL`);
 
     // Create error logs table
     await client.query(`
@@ -136,8 +159,9 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_message_templates_user_id ON message_templates(user_id);
       CREATE INDEX IF NOT EXISTS idx_message_history_user_id ON message_history(user_id);
       CREATE INDEX IF NOT EXISTS idx_message_history_sent_at ON message_history(sent_at);
-      CREATE INDEX IF NOT EXISTS idx_scheduled_messages_user_id ON scheduled_messages(user_id);
-      CREATE INDEX IF NOT EXISTS idx_scheduled_messages_scheduled_for ON scheduled_messages(scheduled_for);
+  CREATE INDEX IF NOT EXISTS idx_scheduled_messages_user_id ON scheduled_messages(user_id);
+  CREATE INDEX IF NOT EXISTS idx_scheduled_messages_scheduled_for ON scheduled_messages(scheduled_for);
+  CREATE INDEX IF NOT EXISTS idx_scheduled_messages_status ON scheduled_messages(status);
       CREATE INDEX IF NOT EXISTS idx_error_logs_user_id ON error_logs(user_id);
       CREATE INDEX IF NOT EXISTS idx_error_logs_created_at ON error_logs(created_at);
       CREATE INDEX IF NOT EXISTS idx_error_logs_resolved ON error_logs(resolved);
