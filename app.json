@@ -1,0 +1,24 @@
+{
+  "name": "WABOT",
+  "description": "WhatsApp automation bot with scheduling and analytics",
+  "repository": "https://github.com/KuraimiKun/WAAUTO",
+  "keywords": ["whatsapp", "automation", "baileys", "node"],
+  "scripts": {
+    "postdeploy": "npm run build"
+  },
+  "env": {
+    "SESSION_SECRET": {
+      "description": "Secret key used to sign and encrypt session cookies",
+      "generator": "secret"
+    },
+    "NODE_ENV": {
+      "description": "Node environment",
+      "value": "production"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0"
+    }
+  ]
+}

@@ -28,6 +28,10 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // PostgreSQL session store
 const PgSession = connectPgSimple(session);
 
@@ -40,7 +44,8 @@ app.use(
   session({
     store: new PgSession({
       pool: pool,
-      tableName: 'session'
+      tableName: 'session',
+      createTableIfMissing: true
     }),
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
