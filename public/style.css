@@ -809,18 +809,13 @@ tbody tr:hover {
     align-items: center;
     justify-content: center;
     box-shadow: var(--shadow-lg);
-    z-index: 100;
+    z-index: 80;
     cursor: pointer;
     transition: var(--transition);
 }
 
 .menu-toggle:hover {
     transform: translateY(-3px);
-}
-
-.menu-toggle.open {
-    box-shadow: 0 18px 40px -18px rgba(14, 165, 233, 0.5);
-    background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 100%);
 }
 
 /* ----------------------------------------------
@@ -904,6 +899,35 @@ tbody tr:hover {
 
     .table-wrap {
         border-radius: var(--radius-md);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    table {
+        min-width: 100%;
+        font-size: 14px;
+    }
+    
+    table th,
+    table td {
+        padding: 8px 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 120px;
+    }
+    
+    table th:first-child,
+    table td:first-child {
+        position: sticky;
+        left: 0;
+        background: white;
+        z-index: 1;
+        box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+    }
+    
+    table th:first-child {
+        background: var(--bg-secondary);
     }
 
     .pagination button {
@@ -920,6 +944,7 @@ tbody tr:hover {
     .flex-between {
         flex-direction: column;
         align-items: flex-start;
+        gap: 12px;
     }
 
     .flex-between > div {
@@ -928,12 +953,53 @@ tbody tr:hover {
     }
 
     .btn-group {
-        width: 100%;
+        flex-direction: column;
+        gap: 8px;
     }
-
-    .btn-group .btn,
-    .flex-between > div .btn {
-        flex: 1;
+    
+    .btn-group button {
+        width: 100%;
+        font-size: 14px;
+        padding: 10px 16px;
+    }
+    
+    .main {
+        padding: 20px 12px 120px;
+    }
+    
+    .content {
+        gap: 16px;
+    }
+    
+    .card {
+        padding: 16px;
+    }
+    
+    h2 {
+        font-size: 20px;
+        margin-bottom: 16px;
+    }
+    
+    .modal-content {
+        margin: 20px;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+    }
+    
+    /* Hide less important columns on very small screens */
+    .hide-mobile {
+        display: none !important;
+    }
+    
+    /* Stack form elements vertically */
+    .form-row {
+        flex-direction: column;
+    }
+    
+    .form-row input,
+    .form-row select {
+        width: 100%;
+        margin-bottom: 12px;
     }
 }
 

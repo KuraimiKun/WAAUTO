@@ -149,8 +149,8 @@ function renderContacts(list) {
             <td><input type="checkbox" value="${c.id}" onchange="toggleContact(${c.id})"></td>
             <td>${c.name || ''}</td>
             <td>${c.phone || ''}</td>
-            <td>${c.email || ''}</td>
-            <td>${c.company || ''}</td>
+            <td class="hide-mobile">${c.email || ''}</td>
+            <td class="hide-mobile">${c.company || ''}</td>
             <td>
                 <button onclick="editContact(${c.id})" class="btn btn-sm">Edit</button>
                 <button onclick="deleteContact(${c.id})" class="btn btn-danger btn-sm">Delete</button>
@@ -632,9 +632,9 @@ async function loadHistory() {
             <tr>
                 <td>${new Date(h.sent_at).toLocaleString()}</td>
                 <td>${h.contact_name || '-'}</td>
-                <td>${h.phone}</td>
+                <td class="hide-mobile">${h.phone}</td>
                 <td><span class="badge ${h.status === 'sent' ? 'conn' : 'disc'}">${h.status}</span></td>
-                <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.message}</td>
+                <td class="hide-mobile" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.message}</td>
             </tr>
         `).join('');
     } catch (e) {
@@ -684,7 +684,7 @@ async function loadErrors() {
             tbody.innerHTML = data.errors.map(err => `
                 <tr class="${err.resolved ? 'error-resolved' : ''}">
                     <td>${new Date(err.created_at).toLocaleString()}</td>
-                    <td>${err.error_type}</td>
+                    <td class="hide-mobile">${err.error_type}</td>
                     <td><span class="severity-${err.severity}">${err.severity}</span></td>
                     <td title="${err.stack_trace || ''}">${err.error_message}</td>
                     <td>

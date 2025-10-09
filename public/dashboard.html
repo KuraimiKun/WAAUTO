@@ -55,7 +55,7 @@
 <div class='flex-between'><h2>Contacts</h2><div><button onclick='showModal("addContact")' class='btn'>+ Add</button><label class='btn'><input type='file' id='csv' accept='.csv' onchange='importCSV()' style='display:none'>Import CSV</label></div></div>
 <input type='text' id='search' placeholder='Search...' onkeyup='searchContacts()' class='search'>
 <div id='msg1'></div>
-<div class='table-wrap'><table><thead><tr><th><input type='checkbox' onchange='toggleAll(this)'></th><th>Name</th><th>Phone</th><th>Email</th><th>Company</th><th>Actions</th></tr></thead><tbody id='ctable'><tr><td colspan='6' style='text-align:center;padding:40px'>No contacts</td></tr></tbody></table></div>
+<div class='table-wrap'><table><thead><tr><th><input type='checkbox' onchange='toggleAll(this)'></th><th>Name</th><th>Phone</th><th class='hide-mobile'>Email</th><th class='hide-mobile'>Company</th><th>Actions</th></tr></thead><tbody id='ctable'><tr><td colspan='6' style='text-align:center;padding:40px'>No contacts</td></tr></tbody></table></div>
 <button onclick='deleteSelected()' class='btn btn-danger btn-sm' style='margin-top:10px'>Delete Selected</button>
 </div>
 <div class='panel' id='p2'>
@@ -90,7 +90,7 @@
 <div class='stat'><h4>Failed</h4><div id='st3'>0</div></div>
 <div class='stat'><h4>Today</h4><div id='st4'>0</div></div>
 </div>
-<div class='card' style='margin-top:20px'><h3>Recent Messages</h3><div class='table-wrap'><table><thead><tr><th>Date</th><th>Contact</th><th>Phone</th><th>Status</th><th>Message</th></tr></thead><tbody id='htable'><tr><td colspan='5' style='text-align:center;padding:40px'>No history</td></tr></tbody></table></div></div>
+<div class='card' style='margin-top:20px'><h3>Recent Messages</h3><div class='table-wrap'><table><thead><tr><th>Date</th><th>Contact</th><th class='hide-mobile'>Phone</th><th>Status</th><th class='hide-mobile'>Message</th></tr></thead><tbody id='htable'><tr><td colspan='5' style='text-align:center;padding:40px'>No history</td></tr></tbody></table></div></div>
 </div>
 <div class='panel' id='p6'>
 <div class='flex-between'><h2>Error Logs</h2><div><button onclick='resolveAllErrors()' class='btn btn-secondary'>Resolve All</button><button onclick='clearResolvedErrors()' class='btn btn-danger'>Clear Resolved</button></div></div>
@@ -101,7 +101,7 @@
 <div class='stat'><h4>Warnings</h4><div id='est4'>0</div></div>
 </div>
 <div id='msg6'></div>
-<div class='table-wrap'><table><thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Message</th><th>Actions</th></tr></thead><tbody id='etable'><tr><td colspan='5' style='text-align:center;padding:40px'>No errors</td></tr></tbody></table></div>
+<div class='table-wrap'><table><thead><tr><th>Time</th><th class='hide-mobile'>Type</th><th>Severity</th><th>Message</th><th>Actions</th></tr></thead><tbody id='etable'><tr><td colspan='5' style='text-align:center;padding:40px'>No errors</td></tr></tbody></table></div>
 </div>
 </div>
 </main>
